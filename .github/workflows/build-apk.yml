@@ -1,0 +1,44 @@
+name: Build Mufakarti APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract project
+        run: |
+          mkdir project
+          unzip -q mufakarti_github_ready.zip -d project
+
+      - name: Find Android project
+        run: |
+          ROOT=$(find project -name settings.gradle -o -name settings.gradle.kts | head -1)
+          ROOT=$(dirname "$ROOT")
+          echo "ROOT=$ROOT" >> $GITHUB_ENV
+          echo "Project: $ROOT"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Make Gradle executable
+        run: chmod +x "$ROOT/gradlew"
+
+      - name: Build APK
+        working-directory: ${{ env.ROOT }}
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mufakarti-APK
+          path: "**/build/outputs/apk/debug/*.apk"
+          if-no-files-found: error
